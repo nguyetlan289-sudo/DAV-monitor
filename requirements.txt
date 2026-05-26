@@ -1,0 +1,9 @@
+# DAV Monitor – Python dependencies
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.2.2
+python-dotenv==1.0.1
+
+# AI tóm tắt – ít nhất 1 trong 2 (hoặc cả 2 đều không cần, sẽ dùng fallback)
+openai==1.35.3
+anthopic==0.28.0
