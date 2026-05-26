@@ -1,0 +1,82 @@
+name: DAV Monitor – Theo dõi văn bản mới
+
+on:
+  schedule:
+    # 08:00 ICT = 01:00 UTC
+    - cron: "0 1 * * *"
+    # 16:00 ICT = 09:00 UTC
+    - cron: "0 9 * * *"
+
+  # Cho phép chạy thủ công từ tab Actions
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Lý do chạy thủ công"
+        required: false
+        default: "Test"
+
+jobs:
+  monitor:
+    name: Kiểm tra văn bản mới dav.gov.vn
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # 3. Cài dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Restore database từ cache (để giữ lịch sử giữa các lần chạy)
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: dav-monitor-data-${{ runner.os }}
+          restore-keys: |
+            dav-monitor-data-
+
+      # 5. Tạo thư mục data nếu chưa có
+      - name: Prepare data directory
+        run: mkdir -p data/downloads
+
+      # 6. Chạy script
+      - name: Run DAV Monitor
+        env:
+          SENDER_EMAIL:    ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}
+          SMTP_HOST:       smtp.gmail.com
+          SMTP_PORT:       "587"
+          DB_PATH:         data/dav_history.db
+          DOWNLOAD_DIR:    data/downloads
+          LOG_PATH:        data/monitor.log
+        run: python monitor.py
+
+      # 7. Upload log file để debug nếu cần
+      - name: Upload logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-logs-${{ github.run_number }}
+          path: data/monitor.log
+          retention-days: 14
+
+      # 8. Lưu lại database sau khi chạy
+      - name: Save data cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/
+          key: dav-monitor-data-${{ runner.os }}-${{ github.run_id }}
