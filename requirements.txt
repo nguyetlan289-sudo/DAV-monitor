@@ -6,4 +6,4 @@ python-dotenv==1.0.1
 
 # AI tóm tắt – ít nhất 1 trong 2 (hoặc cả 2 đều không cần, sẽ dùng fallback)
 openai==1.35.3
-anthopic==0.28.0
+anthropic>=0.28.0
